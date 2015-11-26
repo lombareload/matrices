@@ -4,3 +4,6 @@ build
 
 .gradle
 !gradle-wrapper.jar
+
+.idea/
+*.iml
