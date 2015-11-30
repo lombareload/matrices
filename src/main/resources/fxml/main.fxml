@@ -4,9 +4,6 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <HBox prefWidth="1000" alignment="CENTER" spacing="10" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/null" fx:controller="com.fx.matrices.controller.MatrizAdyacenciaController">
-    <!--<fx:define>
-        <Double fx:constant="MAX_VALUE" fx:id="maxWidth"/>
-    </fx:define>-->
     <Pane prefWidth="500" styleClass="graph-pane" fx:id="panelGrafo">
 
     </Pane>
@@ -29,14 +26,13 @@
             </Tab>
             <Tab text="Incidencia" closable="false">
                 <content>
-                    <GridPane fx:id="incidencia"></GridPane>
+                    <!--<GridPane fx:id="incidencia"></GridPane>-->
+                    <TableView fx:id="incidencia" editable="false">
+                        <padding><Insets top="15" right="0" left="0" bottom="0"/></padding>
+                    </TableView>
                 </content>
             </Tab>
         </tabs>
     </TabPane>
 
-    <!--<VBox fx:id="inputGrid" prefHeight="280.0" prefWidth="400" styleClass="input-grid">
-        <Label text="ASD" />
-        <Button onAction="#agregarNodo" text="Agregar nodo" />
-    </VBox>-->
 </HBox>

@@ -1,23 +1,23 @@
 package com.fx.matrices.controller;
 
+import com.fx.matrices.model.Arista;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.text.Text;
+import javafx.util.Callback;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MatrizAdyacenciaController {
 
@@ -25,6 +25,8 @@ public class MatrizAdyacenciaController {
     List<Character> characters = new ArrayList<>();
     Map<String, TextField> texts = new HashMap<>();
     private CharacterIterator iterator = new StringCharacterIterator("ABCDEFGHIJKLMNOPQRST");
+    List<Arista> aristas = Collections.emptyList();
+
     @FXML
     private GridPane adyacencia;
     @FXML
@@ -32,7 +34,7 @@ public class MatrizAdyacenciaController {
     @FXML
     private Pane panelGrafo;
     @FXML
-    private GridPane incidencia;
+    private TableView incidencia;
 
     public void agregarNodo() {
         characters.add(iterator.current());
@@ -67,47 +69,10 @@ public class MatrizAdyacenciaController {
         panelGrafo.getChildren().clear();
         List<Node> elipses = crearElipses();
 
-        List<Node> paths = new ArrayList<>();
-        List<Node> pathNames = new ArrayList<>();
+        pintarAristas(elipses);
 
-        int id = 0;
-        for (Map.Entry<String, TextField> stringTextFieldEntry : texts.entrySet()) {
-            String key = stringTextFieldEntry.getKey();
-            TextField value = stringTextFieldEntry.getValue();
-            int i = Integer.parseInt(value.getText());
-            if (i > 0) {
-                String[] split = key.split(",");
-                int fromIndex = Integer.parseInt(split[0]);
-                int toIndex = Integer.parseInt(split[1]);
+        pintarIncidencia();
 
-                Node fromNode = elipses.get(fromIndex);
-                double fromX = fromNode.getLayoutX() + RADIO;
-                double fromY = fromNode.getLayoutY() + RADIO;
-
-                Node toNode = elipses.get(toIndex);
-                double toX = toNode.getLayoutX() + RADIO;
-                double toY = toNode.getLayoutY() + RADIO;
-
-//                double dx = fromX - toX;
-//                double dy = fromY - toY;
-
-                double midX = (fromX + toX)/2;
-                double midY = (fromY + toY)/2;
-
-                StackPane elipse = createElipse2(Integer.toString(id++));
-                elipse.setLayoutX(midX - RADIO);
-                elipse.setLayoutY(midY - RADIO);
-                pathNames.add(elipse);
-
-                QuadCurve quadCurve = new QuadCurve(fromX, fromY, midX, midY, toX, toY);
-                quadCurve.setStrokeWidth(3);
-                quadCurve.setStroke(Color.BLACK);
-                paths.add(quadCurve);
-            }
-        }
-
-        panelGrafo.getChildren().addAll(paths);
-        panelGrafo.getChildren().addAll(pathNames);
         panelGrafo.getChildren().addAll(elipses);
     }
 
@@ -130,9 +95,52 @@ public class MatrizAdyacenciaController {
         return elipses;
     }
 
-    /*public void pintarIncidencia() {
+    private void pintarIncidencia() {
+        incidencia.getColumns().clear();
+
+        // create rows
+        characters.stream().<Integer>reduce(0, (x, c) -> {
+            TableColumn column = new TableColumn<String[], String>(Character.toString(c));
+            column.setCellValueFactory(new Callback<TableColumn.CellDataFeatures, ObservableValue>() {
+                @Override
+                public ObservableValue call(TableColumn.CellDataFeatures param) {
+                    return new ReadOnlyStringWrapper(((String[]) param.getValue())[x]);
+                }
+            });
+            incidencia.getColumns().add(column);
+            return x + 1;
+        }, (a, b) -> a);
+
+        TableColumn column = new TableColumn<String[], String>("Arista");
+        column.setCellValueFactory(new Callback<TableColumn.CellDataFeatures, ObservableValue>() {
+            @Override
+            public ObservableValue call(TableColumn.CellDataFeatures param) {
+                String[] strings = (String[]) param.getValue();
+                return new ReadOnlyStringWrapper(strings[strings.length-1]);
+            }
+        });
+        incidencia.getColumns().add(column);
+
+        // insert into rows
+        ObservableList items = incidencia.getItems();
+        items.clear();
+        for (Arista arista : aristas) {
+            String[] values = new String[characters.size()+1];
+            int j = 0;
+            for (char c: characters) {
+                values[j++] = arista.hasConnectionWith(c) ? "1" : "0";
+            }
+            values[j] = String.valueOf(arista.getId());
+            items.add(values);
+        }
+    }
+
+    private void pintarAristas(List<Node> elipses) {
+        List<Node> paths = new ArrayList<>();
+        List<Node> pathNames = new ArrayList<>();
+        aristas = new ArrayList<>();
+
         int id = 0;
-        Map<String, Integer> relations = new HashMap<>();
         for (Map.Entry<String, TextField> stringTextFieldEntry : texts.entrySet()) {
             String key = stringTextFieldEntry.getKey();
             TextField value = stringTextFieldEntry.getValue();
@@ -142,14 +150,14 @@ public class MatrizAdyacenciaController {
                 int fromIndex = Integer.parseInt(split[0]);
                 int toIndex = Integer.parseInt(split[1]);
 
+                aristas.add(new Arista(id, characters.get(fromIndex), characters.get(toIndex)));
                 Node fromNode = elipses.get(fromIndex);
-                double fromX = fromNode.getLayoutX() + RADIO;//2;
-                double fromY = fromNode.getLayoutY() + RADIO;//2;
-//                MoveTo moveToFrom = new MoveTo(fromX, fromY);
+                double fromX = fromNode.getLayoutX() + RADIO;
+                double fromY = fromNode.getLayoutY() + RADIO;
 
                 Node toNode = elipses.get(toIndex);
-                double toX = toNode.getLayoutX() + RADIO;//2;
-                double toY = toNode.getLayoutY() + RADIO;//2;
+                double toX = toNode.getLayoutX() + RADIO;
+                double toY = toNode.getLayoutY() + RADIO;
 
 //                double dx = fromX - toX;
 //                double dy = fromY - toY;
@@ -157,25 +165,21 @@ public class MatrizAdyacenciaController {
                 double midX = (fromX + toX)/2;
                 double midY = (fromY + toY)/2;
 
-                StackPane elipse = createElipse2(Character.toString(numbers.current()));
-                elipse.setLayoutX(midX - RADIO);
-                elipse.setLayoutY(midY - RADIO);
-                pathNames.add(elipse);
+                StackPane aristaNodo = createElipseArista(Integer.toString(id++));
+                aristaNodo.setLayoutX(midX - RADIO);
+                aristaNodo.setLayoutY(midY - RADIO);
+                pathNames.add(aristaNodo);
 
                 QuadCurve quadCurve = new QuadCurve(fromX, fromY, midX, midY, toX, toY);
                 quadCurve.setStrokeWidth(3);
                 quadCurve.setStroke(Color.BLACK);
                 paths.add(quadCurve);
-                numbers.next();
-//                QuadCurveTo path = paintLine(moveToFrom, toX, toY);
-//                paths.add(path);
             }
         }
-    }*/
 
-
-
-
+        panelGrafo.getChildren().addAll(paths);
+        panelGrafo.getChildren().addAll(pathNames);
+    }
 
     public static StackPane createElipse(String value) {
         Ellipse e = EllipseBuilder
@@ -194,7 +198,7 @@ public class MatrizAdyacenciaController {
         return stack;
     }
 
-    public static StackPane createElipse2(String value) {
+    public static StackPane createElipseArista(String value) {
         Ellipse e = EllipseBuilder
                 .create()
                 .fill(Color.AQUAMARINE)
@@ -209,13 +213,5 @@ public class MatrizAdyacenciaController {
         stack.getChildren().add(e);
         stack.getChildren().add(text);
         return stack;
-    }
-
-    private static Path paintLine(MoveTo moveTo, double x, double y){
-        Path path = new Path();
-        path.getElements().add(moveTo);
-        path.getElements().add(new LineTo(x, y));
-        path.setStrokeWidth(3);
-        return path;
     }
 }
